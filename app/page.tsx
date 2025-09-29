@@ -1,99 +1,86 @@
-// This directive tells Next.js that this component runs on the client-side
-// It's needed because we're using browser-specific features like 3D graphics
 'use client';
 
-// Import required components
+import React, { Suspense, useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Grid } from '@react-three/drei';
-import { Model as PottedPlant } from './components/PottedPlant';
-import { Cube } from './components/Cube';
 
-// Main homepage component that renders our 3D scene
+import { Model as Bedroom } from './components/Bedroom';
+import { HoverProvider } from './components/HoverContext';
+import { InfoPanel } from './components/InfoPanel';
+import type { InfoMap } from './types/scene';
+
 export default function Home() {
+  // Provide your descriptions here. Keys must match child ids (typically GLB node names).
+  // You can add more entries as you learn the names, e.g., "Bed", "Desk", "Lamp", etc.
+  const infoMap: InfoMap = useMemo(() => ({
+    // Add entries where the KEY equals the isolated piece's id
+    // For per-piece isolation, ids are usually the mesh names from your GLB.
+    // If a mesh has no name, our code assigns a fallback like "piece-0", "piece-1", ...
+
+    // --- Examples you can customize (safe to delete or replace) ---
+    'Bed': {
+      id: 'Bed',
+      title: 'Bed',
+      description: 'A cozy place to sleep. Replace with your own description.',
+    },
+    'Desk': {
+      id: 'Desk',
+      title: 'Desk',
+      description: 'A workspace for study or creation. Write your notes here.',
+    },
+    'Laptop': {
+      id: 'Laptop',
+      title: 'Laptop',
+      description: 'Portable computer on the desk.',
+    },
+
+    // --- Fallback examples for unnamed meshes (auto-generated ids) ---
+    'piece-0': {
+      id: 'piece-0',
+      title: 'Unnamed Piece 0',
+      description: 'This mesh had no name in the GLB. Rename when identified.',
+    },
+    'piece-1': {
+      id: 'piece-1',
+      title: 'Unnamed Piece 1',
+      description: 'Add a description after you identify this piece.',
+    },
+  }), []);
+
   return (
-    // Container div that takes up the full viewport (100% width and height)
     <div style={{ width: '100vw', height: '100vh' }}>
-      {/* 
-        Canvas is the main React Three Fiber component that creates a 3D scene
-        It sets up WebGL context and handles rendering
-        camera prop sets the initial camera position [x, y, z]
-      */}
-      <Canvas camera={{ position: [5, 5, 5] }}>
-        
-        {/* 
-          LIGHTING SETUP
-          We use multiple light sources to create depth and visual interest
-        */}
-        
-        {/* Ambient light provides soft, overall illumination without direction */}
-        <ambientLight intensity={0.4} />
-        
-        {/* Directional light simulates sunlight - comes from one direction */}
-        <directionalLight 
-          position={[10, 10, 5]}  // Position in 3D space [x, y, z]
-          intensity={1.0}         // How bright the light is
-          castShadow              // Enable this light to cast shadows
-        />
-        
-        {/* Point light radiates in all directions from a single point */}
-        <pointLight 
-          position={[-10, -10, -5]}  // Positioned opposite to main light
-          intensity={0.5}            // Dimmer than main light
-          color="#ffffff"            // Pure white light
-        />
-        
-        {/* Spot light creates a cone of light, like a flashlight */}
-        <spotLight
-          position={[0, 10, 0]}  // Directly above the scene
-          angle={0.3}            // Width of the light cone
-          penumbra={1}           // Softness of light edges (0 = sharp, 1 = very soft)
-          intensity={0.3}        // Gentle fill light
-          castShadow             // Enable shadow casting
-        />
-        
-        {/* 
-          3D OBJECTS
-          These are our interactive 3D elements in the scene
-        */}
-        
-        {/* Static orange cube positioned at the origin (0, 0, 0) */}
-        <Cube />
-        
-        {/* Interactive potted plant that can be clicked to teleport */}
-        <PottedPlant scale={10} />
-        
-        {/* 
-          SCENE HELPERS
-          Visual aids that help users understand the 3D space
-        */}
-        
-        {/* Grid floor provides spatial reference and depth perception */}
-        <Grid 
-          args={[20, 20]}           // Grid dimensions: 20x20 units
-          position={[0, -1, 0]}     // Positioned 1 unit below origin
-          cellSize={1}              // Each cell is 1x1 unit
-          cellThickness={0.5}       // Thin lines for individual cells
-          cellColor="#6f6f6f"       // Gray color for cell lines
-          sectionSize={5}           // Major grid lines every 5 cells
-          sectionThickness={1}      // Thicker lines for major sections
-          sectionColor="#9d4b4b"    // Reddish color for section lines
-          fadeDistance={25}         // Grid fades out at this distance
-          fadeStrength={1}          // How quickly the fade happens
-        />
-        
-        {/* 
-          CAMERA CONTROLS
-          OrbitControls allows users to navigate around the 3D scene
-          - Left click + drag: Rotate camera around the scene
-          - Right click + drag: Pan the camera
-          - Scroll wheel: Zoom in and out
-        */}
-        <OrbitControls 
-          enablePan={true}      // Allow panning (moving the camera)
-          enableZoom={true}     // Allow zooming in/out
-          enableRotate={true}   // Allow rotating around the scene
-        />
-      </Canvas>
+      <HoverProvider infoMap={infoMap}>
+        {/* Overlay UI */}
+        <InfoPanel />
+
+        <Canvas camera={{ position: [5, 12, 5], near: 0.1, far: 1000 }}>
+          {/* Lights */}
+          <ambientLight intensity={0.8} />
+          <directionalLight position={[10, 10, 5]} intensity={1.0} castShadow />
+
+          {/* Room model */}
+          <Suspense fallback={null}>
+            <Bedroom scale={1} />
+          </Suspense>
+
+          {/* Grid helper */}
+          <Grid
+            args={[20, 20]}
+            position={[0, -1, 0]}
+            cellSize={1}
+            cellThickness={0.5}
+            cellColor="#6f6f6f"
+            sectionSize={5}
+            sectionThickness={1}
+            sectionColor="#9d4b4b"
+            fadeDistance={25}
+            fadeStrength={1}
+          />
+
+          {/* Camera controls */}
+          <OrbitControls enablePan enableZoom enableRotate />
+        </Canvas>
+      </HoverProvider>
     </div>
   );
 }
